@@ -35,7 +35,7 @@ func (s *StepExportVm) Run(ctx context.Context, state multistep.StateBag) multis
 		vmName = v.(string)
 	}
 
-	var outputDir string = s.OutputDir
+	outputDir := s.OutputDir
 
 	if wsl.IsWSL() {
 		var err error
