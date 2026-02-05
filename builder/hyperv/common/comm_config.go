@@ -53,7 +53,7 @@ type CommConfig struct {
 
 	// --- PSRP Authentication Settings ---
 	// Authentication type: "basic", "ntlm", "kerberos", or "negotiate".
-	// Defaults to "negotiate".
+	// If not specified, the communicator's default authentication mechanism is used.
 	PSRPAuthType string `mapstructure:"psrp_auth_type" required:"false"`
 	// Domain for NTLM/Negotiate authentication.
 	PSRPDomain string `mapstructure:"psrp_domain" required:"false"`
