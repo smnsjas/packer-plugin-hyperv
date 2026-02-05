@@ -114,6 +114,11 @@ func (d *HypervPS4Driver) GetVirtualMachineGeneration(vmName string) (uint, erro
 	return hyperv.GetVirtualMachineGeneration(vmName)
 }
 
+// GetVMId returns the VM GUID for the specified VM name (required for HvSocket/PowerShell Direct)
+func (d *HypervPS4Driver) GetVMId(vmName string) (string, error) {
+	return hyperv.GetVMId(vmName)
+}
+
 // Finds the IP address of a host adapter connected to switch
 func (d *HypervPS4Driver) GetHostAdapterIpAddressForSwitch(switchName string) (string, error) {
 	res, err := hyperv.GetHostAdapterIpAddressForSwitch(switchName)

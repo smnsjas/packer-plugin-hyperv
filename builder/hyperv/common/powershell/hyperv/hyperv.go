@@ -654,6 +654,27 @@ return $generation
 	return generation, err
 }
 
+func GetVMId(vmName string) (string, error) {
+	var script = `
+param([string]$vmName)
+$vm = Hyper-V\Get-VM -Name $vmName -ErrorAction Stop
+return $vm.Id.ToString()
+`
+	var ps powershell.PowerShellCmd
+	cmdOut, err := ps.Output(script, vmName)
+
+	if err != nil {
+		return "", fmt.Errorf("failed to get VM GUID for '%s': %w", vmName, err)
+	}
+
+	vmId := strings.TrimSpace(cmdOut)
+	if vmId == "" {
+		return "", fmt.Errorf("VM '%s' returned empty GUID", vmName)
+	}
+
+	return vmId, nil
+}
+
 func SetVirtualMachineCpuCount(vmName string, cpu uint) error {
 
 	var script = `
