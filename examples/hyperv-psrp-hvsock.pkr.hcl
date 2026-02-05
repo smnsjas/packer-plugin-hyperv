@@ -39,7 +39,10 @@ source "hyperv-iso" "hvsock" {
   boot_wait         = "1s"
   
   // Provide autounattend.xml for automated installation
-  cd_files          = ["./Autounattend.xml"]
+  // Using cd_content as cd_files seems to have mapping issues
+  cd_content        = {
+    "Autounattend.xml" = file("./Autounattend.xml")
+  }
   
   // Basic shutdown command
   shutdown_command  = "shutdown /s /t 10 /f /d p:4:1 /c \"Packer Shutdown\""

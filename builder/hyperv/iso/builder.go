@@ -100,6 +100,10 @@ type Config struct {
 func (b *Builder) ConfigSpec() hcldec.ObjectSpec { return b.config.FlatMapstructure().HCL2Spec() }
 
 func (b *Builder) Prepare(raws ...interface{}) ([]string, []string, error) {
+	for i, raw := range raws {
+		log.Printf("DEBUG: raw[%d]: %v", i, raw)
+	}
+
 	err := config.Decode(&b.config, &config.DecodeOpts{
 		PluginType:         hypervcommon.BuilderId,
 		Interpolate:        true,
@@ -267,6 +271,7 @@ func (b *Builder) Run(ctx context.Context, ui packersdk.Ui, hook packersdk.Hook)
 		},
 		func() multistep.Step {
 			log.Printf("DEBUG: CDConfig.CDFiles: %v", b.config.CDConfig.CDFiles)
+			log.Printf("DEBUG: CDConfig.CDContent: %v", b.config.CDConfig.CDContent)
 			log.Printf("DEBUG: SecondaryDvdImages: %v", b.config.SecondaryDvdImages)
 			return &commonsteps.StepCreateCD{
 				Files:   b.config.CDConfig.CDFiles,
