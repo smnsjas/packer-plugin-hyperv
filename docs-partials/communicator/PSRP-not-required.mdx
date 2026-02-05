@@ -1,0 +1,19 @@
+- `psrp_transport` (string) - The PSRP transport to use. Valid values are `wsman` (default) and `hvsock`.
+  `wsman` uses standard WinRM/PSRP over the network.
+  `hvsock` uses Hyper-V sockets to connect directly to the VM without network connectivity (requires PowerShell Direct).
+
+- `psrp_username` (string) - The username to use to authenticate via PSRP.
+
+- `psrp_password` (string) - The password to use to authenticate via PSRP.
+
+- `psrp_port` (int) - The port to connect to. Defaults to `5985` for HTTP and `5986` for HTTPS (WSMan). Ignored for `hvsock`.
+
+- `psrp_use_ssl` (bool) - Whether to use SSL/HTTPS for the connection. Defaults to `false`.
+
+- `psrp_insecure` (bool) - Whether to skip TLS certificate validation. Defaults to `false`.
+
+- `psrp_auth` (string) - The authentication method to use. Valid values are `basic`, `ntlm`, `negotiate`, `kerberos`. Defaults to `ntlm`.
+
+- `psrp_timeout` (duration string | ex: "1h5m2s") - The amount of time to wait for the PSRP connection to become available. Defaults to `5m`.
+
+- `psrp_vmid` (string) - The VM GUID to connect to when using `hvsock`. If not specified, the builder will attempt to automatically detect the GUID of the VM being built.

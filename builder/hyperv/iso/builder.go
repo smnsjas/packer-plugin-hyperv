@@ -25,6 +25,7 @@ import (
 	"github.com/hashicorp/packer-plugin-sdk/shutdowncommand"
 	"github.com/hashicorp/packer-plugin-sdk/template/config"
 	"github.com/hashicorp/packer-plugin-sdk/template/interpolate"
+	"github.com/smnsjas/packer-psrp-communicator/communicator/psrp"
 )
 
 const (
@@ -61,7 +62,7 @@ type Config struct {
 	commonsteps.ISOConfig          `mapstructure:",squash"`
 	bootcommand.BootConfig         `mapstructure:",squash"`
 	hypervcommon.OutputConfig      `mapstructure:",squash"`
-	hypervcommon.SSHConfig         `mapstructure:",squash"`
+	hypervcommon.CommConfig        `mapstructure:",squash"`
 	hypervcommon.CommonConfig      `mapstructure:",squash"`
 	shutdowncommand.ShutdownConfig `mapstructure:",squash"`
 	// Packer normally halts the virtual machine after all provisioners have
@@ -124,7 +125,7 @@ func (b *Builder) Prepare(raws ...interface{}) ([]string, []string, error) {
 	errs = packersdk.MultiErrorAppend(errs, b.config.BootConfig.Prepare(&b.config.ctx)...)
 	errs = packersdk.MultiErrorAppend(errs, b.config.HTTPConfig.Prepare(&b.config.ctx)...)
 	errs = packersdk.MultiErrorAppend(errs, b.config.OutputConfig.Prepare(&b.config.ctx, &b.config.PackerConfig)...)
-	errs = packersdk.MultiErrorAppend(errs, b.config.SSHConfig.Prepare(&b.config.ctx)...)
+	errs = packersdk.MultiErrorAppend(errs, b.config.CommConfig.Prepare(&b.config.ctx)...)
 	errs = packersdk.MultiErrorAppend(errs, b.config.ShutdownConfig.Prepare(&b.config.ctx)...)
 
 	commonErrs, commonWarns := b.config.CommonConfig.Prepare(&b.config.ctx, &b.config.PackerConfig)
@@ -147,7 +148,7 @@ func (b *Builder) Prepare(raws ...interface{}) ([]string, []string, error) {
 
 	if b.config.Generation == 2 {
 		if b.config.UseLegacyNetworkAdapter {
-			err = errors.New("Generation 2 vms don't support legacy network adapters.")
+			err = errors.New("generation 2 vms don't support legacy network adapters.")
 			errs = packersdk.MultiErrorAppend(errs, err)
 		}
 	}
@@ -155,17 +156,17 @@ func (b *Builder) Prepare(raws ...interface{}) ([]string, []string, error) {
 	// Errors
 
 	if b.config.Generation > 1 && b.config.FixedVHD {
-		err = errors.New("Fixed VHD disks are only supported on Generation 1 virtual machines.")
+		err = errors.New("fixed VHD disks are only supported on Generation 1 virtual machines.")
 		errs = packersdk.MultiErrorAppend(errs, err)
 	}
 
 	if !b.config.SkipCompaction && b.config.FixedVHD {
-		err = errors.New("Fixed VHD disks do not support compaction.")
+		err = errors.New("fixed VHD disks do not support compaction.")
 		errs = packersdk.MultiErrorAppend(errs, err)
 	}
 
 	if b.config.DifferencingDisk && b.config.FixedVHD {
-		err = errors.New("Fixed VHD disks are not supported with differencing disks.")
+		err = errors.New("fixed VHD disks are not supported with differencing disks.")
 		errs = packersdk.MultiErrorAppend(errs, err)
 	}
 
@@ -190,7 +191,7 @@ func (b *Builder) Run(ctx context.Context, ui packersdk.Ui, hook packersdk.Hook)
 	// Create the driver that we'll use to communicate with Hyperv
 	driver, err := hypervcommon.NewHypervPS4Driver()
 	if err != nil {
-		return nil, fmt.Errorf("Failed creating Hyper-V driver: %s", err)
+		return nil, fmt.Errorf("failed creating Hyper-V driver: %w", err)
 	}
 
 	// Set up the state.
@@ -290,6 +291,7 @@ func (b *Builder) Run(ctx context.Context, ui packersdk.Ui, hook packersdk.Hook)
 		&hypervcommon.StepRun{
 			Headless:   b.config.Headless,
 			SwitchName: b.config.SwitchName,
+			SkipHostIP: b.config.Comm.Type == "psrp" && b.config.PSRPTransport == "hvsock",
 		},
 
 		&hypervcommon.StepTypeBootCommand{
@@ -300,11 +302,21 @@ func (b *Builder) Run(ctx context.Context, ui packersdk.Ui, hook packersdk.Hook)
 			GroupInterval: b.config.BootConfig.BootGroupInterval,
 		},
 
-		// configure the communicator ssh, winrm
+		&hypervcommon.StepConfigurePSRP{
+			CommConfig: &b.config.CommConfig,
+		},
+
+		// configure the communicator ssh, winrm, or psrp
 		&communicator.StepConnect{
-			Config:    &b.config.SSHConfig.Comm,
-			Host:      hypervcommon.CommHost(b.config.SSHConfig.Comm.Host()),
-			SSHConfig: b.config.SSHConfig.Comm.SSHConfigFunc(),
+			Config:    &b.config.CommConfig.Comm,
+			Host:      hypervcommon.CommHost(b.config.CommConfig.Comm.Host()),
+			SSHConfig: b.config.CommConfig.Comm.SSHConfigFunc(),
+			CustomConnect: map[string]multistep.Step{
+				"psrp": &psrp.StepConnect{
+					Config: &b.config.CommConfig.PSRP,
+					Host:   hypervcommon.PSRPHost(&b.config.CommConfig),
+				},
+			},
 		},
 
 		// provision requires communicator to be setup
@@ -312,7 +324,7 @@ func (b *Builder) Run(ctx context.Context, ui packersdk.Ui, hook packersdk.Hook)
 
 		// Remove ephemeral key from authorized_hosts if using SSH communicator
 		&commonsteps.StepCleanupTempKeys{
-			Comm: &b.config.SSHConfig.Comm,
+			Comm: &b.config.CommConfig.Comm,
 		},
 
 		&hypervcommon.StepShutdown{
@@ -358,11 +370,11 @@ func (b *Builder) Run(ctx context.Context, ui packersdk.Ui, hook packersdk.Hook)
 
 	// If we were interrupted or cancelled, then just exit.
 	if _, ok := state.GetOk(multistep.StateCancelled); ok {
-		return nil, errors.New("Build was cancelled.")
+		return nil, errors.New("build was cancelled.")
 	}
 
 	if _, ok := state.GetOk(multistep.StateHalted); ok {
-		return nil, errors.New("Build was halted.")
+		return nil, errors.New("build was halted.")
 	}
 	generatedData := map[string]interface{}{"generated_data": state.Get("generated_data")}
 	return hypervcommon.NewArtifact(b.config.OutputDir, generatedData)
@@ -378,13 +390,13 @@ func (b *Builder) checkDiskSize() error {
 	log.Printf("%s: %v", "DiskSize", b.config.DiskSize)
 
 	if b.config.DiskSize < MinDiskSize {
-		return fmt.Errorf("disk_size: Virtual machine requires disk space >= %v GB, but defined: %v",
+		return fmt.Errorf("disk_size: virtual machine requires disk space >= %v GB, but defined: %v",
 			MinDiskSize, b.config.DiskSize/1024)
 	} else if b.config.DiskSize > MaxDiskSize && !b.config.FixedVHD {
-		return fmt.Errorf("disk_size: Virtual machine requires disk space <= %v GB, but defined: %v",
+		return fmt.Errorf("disk_size: virtual machine requires disk space <= %v GB, but defined: %v",
 			MaxDiskSize, b.config.DiskSize/1024)
 	} else if b.config.DiskSize > MaxVHDSize && b.config.FixedVHD {
-		return fmt.Errorf("disk_size: Virtual machine requires disk space <= %v GB, but defined: %v",
+		return fmt.Errorf("disk_size: virtual machine requires disk space <= %v GB, but defined: %v",
 			MaxVHDSize/1024, b.config.DiskSize/1024)
 	}
 

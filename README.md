@@ -1,6 +1,14 @@
 # Packer Plugin Hyperv
+
 The `Hyperv` multi-component plugin can be used with HashiCorp [Packer](https://www.packer.io)
 to create custom images. For the full list of available features for this plugin see [docs](docs).
+
+## Key Features
+
+* **PSRP Communicator Support:** Perform Windows provisioning using the PowerShell Remoting Protocol (PSRP), which is faster and more reliable than WinRM.
+* **HvSocket Integration:** Connect directly to VMs via Hyper-V Sockets (`psrp_transport = "hvsock"`), eliminating the need for network interfaces, IP addresses, or firewall configuration on the guest.
+* **Automated Windows Installation:** Full support for `Autounattend.xml` via `cd_content` for zero-touch Windows ISO builds.
+* **Automatic VMID Detection:** The plugin automatically detects the VM's GUID for seamless HvSocket connections.
 
 ## Installation
 
@@ -20,21 +28,19 @@ packer {
   required_plugins {
     hyperv = {
       version = ">= 1.1.5"
-      source  = "github.com/hashicorp/hyperv"
+      source  = "github.com/Geogboe/hyperv"
     }
   }
 }
 ```
 
-
 #### Manual installation
 
-You can find pre-built binary releases of the plugin [here](https://github.com/hashicorp/packer-plugin-hyperv/releases).
+You can find pre-built binary releases of the plugin [here](https://github.com/Geogboe/packer-plugin-hyperv/releases).
 Once you have downloaded the latest archive corresponding to your target OS,
 uncompress it to retrieve the plugin binary file corresponding to your platform.
 To install the plugin, please follow the Packer documentation on
 [installing a plugin](https://www.packer.io/docs/extending/plugins/#installing-plugins).
-
 
 ### From Sources
 
@@ -45,12 +51,10 @@ binary file can be found in the root directory.
 To install the compiled plugin, please follow the official Packer documentation
 on [installing a plugin](https://www.packer.io/docs/extending/plugins/#installing-plugins).
 
-
 ### Configuration
 
 For more information on how to configure the plugin, please read the
 documentation located in the [`docs/`](docs) directory.
-
 
 ## Contributing
 

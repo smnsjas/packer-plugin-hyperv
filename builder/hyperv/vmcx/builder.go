@@ -15,7 +15,6 @@ import (
 
 	"github.com/hashicorp/hcl/v2/hcldec"
 	hypervcommon "github.com/hashicorp/packer-plugin-hyperv/builder/hyperv/common"
-	powershell "github.com/hashicorp/packer-plugin-hyperv/builder/hyperv/common/powershell"
 	"github.com/hashicorp/packer-plugin-sdk/bootcommand"
 	"github.com/hashicorp/packer-plugin-sdk/common"
 	"github.com/hashicorp/packer-plugin-sdk/communicator"
@@ -25,6 +24,7 @@ import (
 	"github.com/hashicorp/packer-plugin-sdk/shutdowncommand"
 	"github.com/hashicorp/packer-plugin-sdk/template/config"
 	"github.com/hashicorp/packer-plugin-sdk/template/interpolate"
+	"github.com/smnsjas/packer-psrp-communicator/communicator/psrp"
 )
 
 const (
@@ -52,7 +52,7 @@ type Config struct {
 	commonsteps.ISOConfig          `mapstructure:",squash"`
 	bootcommand.BootConfig         `mapstructure:",squash"`
 	hypervcommon.OutputConfig      `mapstructure:",squash"`
-	hypervcommon.SSHConfig         `mapstructure:",squash"`
+	hypervcommon.CommConfig        `mapstructure:",squash"`
 	hypervcommon.CommonConfig      `mapstructure:",squash"`
 	shutdowncommand.ShutdownConfig `mapstructure:",squash"`
 	// Packer normally halts the virtual machine after all provisioners have
@@ -121,7 +121,7 @@ func (b *Builder) Prepare(raws ...interface{}) ([]string, []string, error) {
 	errs = packersdk.MultiErrorAppend(errs, b.config.BootConfig.Prepare(&b.config.ctx)...)
 	errs = packersdk.MultiErrorAppend(errs, b.config.HTTPConfig.Prepare(&b.config.ctx)...)
 	errs = packersdk.MultiErrorAppend(errs, b.config.OutputConfig.Prepare(&b.config.ctx, &b.config.PackerConfig)...)
-	errs = packersdk.MultiErrorAppend(errs, b.config.SSHConfig.Prepare(&b.config.ctx)...)
+	errs = packersdk.MultiErrorAppend(errs, b.config.CommConfig.Prepare(&b.config.ctx)...)
 	errs = packersdk.MultiErrorAppend(errs, b.config.ShutdownConfig.Prepare(&b.config.ctx)...)
 
 	commonErrs, commonWarns := b.config.CommonConfig.Prepare(&b.config.ctx, &b.config.PackerConfig)
@@ -134,63 +134,21 @@ func (b *Builder) Prepare(raws ...interface{}) ([]string, []string, error) {
 
 	if b.config.CloneFromVMName == "" {
 		if b.config.CloneFromVMCXPath == "" {
-			errs = packersdk.MultiErrorAppend(errs, fmt.Errorf("The clone_from_vm_name must be specified if "+
+			errs = packersdk.MultiErrorAppend(errs, fmt.Errorf("the clone_from_vm_name must be specified if "+
 				"clone_from_vmcx_path is not specified."))
-		}
-	} else {
-		virtualMachineExists, err := powershell.DoesVirtualMachineExist(b.config.CloneFromVMName)
-		if err != nil {
-			errs = packersdk.MultiErrorAppend(errs, fmt.Errorf("Failed detecting if virtual machine to clone "+
-				"from exists: %s", err))
-		} else {
-			if !virtualMachineExists {
-				errs = packersdk.MultiErrorAppend(errs, fmt.Errorf("Virtual machine '%s' to clone from does not "+
-					"exist.", b.config.CloneFromVMName))
-			} else {
-				b.config.Generation, err = powershell.GetVirtualMachineGeneration(b.config.CloneFromVMName)
-				if err != nil {
-					errs = packersdk.MultiErrorAppend(errs, fmt.Errorf("Failed detecting virtual machine to clone "+
-						"from generation: %s", err))
-				}
-
-				if b.config.CloneFromSnapshotName != "" {
-					virtualMachineSnapshotExists, err := powershell.DoesVirtualMachineSnapshotExist(
-						b.config.CloneFromVMName, b.config.CloneFromSnapshotName)
-					if err != nil {
-						errs = packersdk.MultiErrorAppend(errs, fmt.Errorf("Failed detecting if virtual machine "+
-							"snapshot to clone from exists: %s", err))
-					} else {
-						if !virtualMachineSnapshotExists {
-							errs = packersdk.MultiErrorAppend(errs, fmt.Errorf("Virtual machine snapshot '%s' on "+
-								"virtual machine '%s' to clone from does not exist.",
-								b.config.CloneFromSnapshotName, b.config.CloneFromVMName))
-						}
-					}
-				}
-
-				virtualMachineOn, err := powershell.IsVirtualMachineOn(b.config.CloneFromVMName)
-				if err != nil {
-					errs = packersdk.MultiErrorAppend(errs, fmt.Errorf("Failed detecting if virtual machine to "+
-						"clone is running: %s", err))
-				} else {
-					if virtualMachineOn {
-						warnings = hypervcommon.Appendwarns(warnings, "Cloning from a virtual machine that is running.")
-					}
-				}
-			}
 		}
 	}
 
 	if b.config.CloneFromVMCXPath == "" {
 		if b.config.CloneFromVMName == "" {
-			errs = packersdk.MultiErrorAppend(errs, fmt.Errorf("The clone_from_vmcx_path be specified if "+
-				"clone_from_vm_name must is not specified."))
+			errs = packersdk.MultiErrorAppend(errs, fmt.Errorf("the clone_from_vmcx_path must be specified if "+
+				"clone_from_vm_name is not specified."))
 		}
 	} else {
 		if _, err := os.Stat(b.config.CloneFromVMCXPath); os.IsNotExist(err) {
 			if err != nil {
 				errs = packersdk.MultiErrorAppend(
-					errs, fmt.Errorf("CloneFromVMCXPath does not exist: %s", err))
+					errs, fmt.Errorf("CloneFromVMCXPath does not exist: %w", err))
 			}
 		}
 		if strings.HasSuffix(strings.ToLower(b.config.CloneFromVMCXPath), ".vmcx") {
@@ -200,7 +158,7 @@ func (b *Builder) Prepare(raws ...interface{}) ([]string, []string, error) {
 				keep := strings.Split(b.config.CloneFromVMCXPath, "Virtual Machines")
 				b.config.CloneFromVMCXPath = keep[0]
 			} else {
-				errs = packersdk.MultiErrorAppend(errs, fmt.Errorf("Unable to "+
+				errs = packersdk.MultiErrorAppend(errs, fmt.Errorf("unable to "+
 					"parse the clone_from_vmcx_path to find the vm directory. "+
 					"Please provide the path to the folder containing the "+
 					"vmcx file, not the file itself. Example: instead of "+
@@ -231,7 +189,7 @@ func (b *Builder) Run(ctx context.Context, ui packersdk.Ui, hook packersdk.Hook)
 	// Create the driver that we'll use to communicate with Hyperv
 	driver, err := hypervcommon.NewHypervPS4Driver()
 	if err != nil {
-		return nil, fmt.Errorf("Failed creating Hyper-V driver: %s", err)
+		return nil, fmt.Errorf("failed creating Hyper-V driver: %w", err)
 	}
 
 	// Set up the state.
@@ -250,6 +208,7 @@ func (b *Builder) Run(ctx context.Context, ui packersdk.Ui, hook packersdk.Hook)
 			Force: b.config.PackerForce,
 			Path:  b.config.OutputDir,
 		},
+		&StepValidateClone{},
 		&commonsteps.StepDownload{
 			Checksum:    b.config.ISOChecksum,
 			Description: "ISO",
@@ -335,6 +294,7 @@ func (b *Builder) Run(ctx context.Context, ui packersdk.Ui, hook packersdk.Hook)
 		&hypervcommon.StepRun{
 			Headless:   b.config.Headless,
 			SwitchName: b.config.SwitchName,
+			SkipHostIP: b.config.Comm.Type == "psrp" && b.config.PSRPTransport == "hvsock",
 		},
 
 		&hypervcommon.StepTypeBootCommand{
@@ -345,11 +305,21 @@ func (b *Builder) Run(ctx context.Context, ui packersdk.Ui, hook packersdk.Hook)
 			GroupInterval: b.config.BootConfig.BootGroupInterval,
 		},
 
-		// configure the communicator ssh, winrm
+		&hypervcommon.StepConfigurePSRP{
+			CommConfig: &b.config.CommConfig,
+		},
+
+		// configure the communicator ssh, winrm, or psrp
 		&communicator.StepConnect{
-			Config:    &b.config.SSHConfig.Comm,
-			Host:      hypervcommon.CommHost(b.config.SSHConfig.Comm.Host()),
-			SSHConfig: b.config.SSHConfig.Comm.SSHConfigFunc(),
+			Config:    &b.config.CommConfig.Comm,
+			Host:      hypervcommon.CommHost(b.config.CommConfig.Comm.Host()),
+			SSHConfig: b.config.CommConfig.Comm.SSHConfigFunc(),
+			CustomConnect: map[string]multistep.Step{
+				"psrp": &psrp.StepConnect{
+					Config: &b.config.CommConfig.PSRP,
+					Host:   hypervcommon.PSRPHost(&b.config.CommConfig),
+				},
+			},
 		},
 
 		// provision requires communicator to be setup
@@ -357,7 +327,7 @@ func (b *Builder) Run(ctx context.Context, ui packersdk.Ui, hook packersdk.Hook)
 
 		// Remove ephemeral SSH keys, if using
 		&commonsteps.StepCleanupTempKeys{
-			Comm: &b.config.SSHConfig.Comm,
+			Comm: &b.config.CommConfig.Comm,
 		},
 
 		&hypervcommon.StepShutdown{
@@ -403,11 +373,11 @@ func (b *Builder) Run(ctx context.Context, ui packersdk.Ui, hook packersdk.Hook)
 
 	// If we were interrupted or cancelled, then just exit.
 	if _, ok := state.GetOk(multistep.StateCancelled); ok {
-		return nil, errors.New("Build was cancelled.")
+		return nil, errors.New("build was cancelled.")
 	}
 
 	if _, ok := state.GetOk(multistep.StateHalted); ok {
-		return nil, errors.New("Build was halted.")
+		return nil, errors.New("build was halted.")
 	}
 
 	generatedData := map[string]interface{}{"generated_data": state.Get("generated_data")}

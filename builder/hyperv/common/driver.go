@@ -44,6 +44,9 @@ type Driver interface {
 	// Finds the hostname for the ip address
 	GetHostName(string) (string, error)
 
+	// Gets the VM GUID for the specified VM name (required for HvSocket/PowerShell Direct)
+	GetVMId(string) (string, error)
+
 	// Finds the IP address of a host adapter connected to switch
 	GetHostAdapterIpAddressForSwitch(string) (string, error)
 

@@ -1,0 +1,39 @@
+<!-- Code generated from the comments of the CommConfig struct in builder/hyperv/common/comm_config.go; DO NOT EDIT MANUALLY -->
+
+- `-` (psrp.Config) - PSRP communicator configuration (internal use)
+
+- `psrp_host` (string) - --- PSRP Connection Settings ---
+  The hostname or IP address of the remote host for PSRP connection.
+  Only used with wsman transport; for hvsock, this is ignored.
+
+- `psrp_port` (int) - The port to connect to. Defaults to 5985 (HTTP) or 5986 (HTTPS).
+
+- `psrp_username` (string) - The username for PSRP authentication.
+
+- `psrp_password` (string) - The password for PSRP authentication.
+
+- `psrp_timeout` (string) - Connection timeout. Defaults to "5m".
+
+- `psrp_transport` (string) - --- PSRP Transport Settings ---
+  Transport type: "wsman" (HTTP/HTTPS) or "hvsock" (PowerShell Direct).
+  Defaults to "wsman".
+
+- `psrp_vmid` (string) - The Hyper-V Virtual Machine GUID for hvsock transport. If not specified,
+  it will be auto-detected from the VM being built.
+
+- `psrp_configuration_name` (string) - PowerShell configuration name for hvsock. Defaults to "Microsoft.PowerShell".
+
+- `psrp_use_tls` (bool) - --- PSRP TLS Settings ---
+  Use TLS (HTTPS) for the connection. Defaults to false.
+
+- `psrp_insecure` (bool) - Skip TLS certificate verification. Defaults to false.
+
+- `psrp_auth_type` (string) - --- PSRP Authentication Settings ---
+  Authentication type: "basic", "ntlm", "kerberos", or "negotiate".
+  Defaults to "negotiate".
+
+- `psrp_domain` (string) - Domain for NTLM/Negotiate authentication.
+
+- `psrp_realm` (string) - Kerberos realm. Optional on Windows (uses SSPI).
+
+<!-- End of code generated from the comments of the CommConfig struct in builder/hyperv/common/comm_config.go; -->
