@@ -148,7 +148,7 @@ func (b *Builder) Prepare(raws ...interface{}) ([]string, []string, error) {
 
 	if b.config.Generation == 2 {
 		if b.config.UseLegacyNetworkAdapter {
-			err = errors.New("Generation 2 vms don't support legacy network adapters.")
+			err = errors.New("generation 2 vms don't support legacy network adapters.")
 			errs = packersdk.MultiErrorAppend(errs, err)
 		}
 	}
@@ -156,17 +156,17 @@ func (b *Builder) Prepare(raws ...interface{}) ([]string, []string, error) {
 	// Errors
 
 	if b.config.Generation > 1 && b.config.FixedVHD {
-		err = errors.New("Fixed VHD disks are only supported on Generation 1 virtual machines.")
+		err = errors.New("fixed VHD disks are only supported on Generation 1 virtual machines.")
 		errs = packersdk.MultiErrorAppend(errs, err)
 	}
 
 	if !b.config.SkipCompaction && b.config.FixedVHD {
-		err = errors.New("Fixed VHD disks do not support compaction.")
+		err = errors.New("fixed VHD disks do not support compaction.")
 		errs = packersdk.MultiErrorAppend(errs, err)
 	}
 
 	if b.config.DifferencingDisk && b.config.FixedVHD {
-		err = errors.New("Fixed VHD disks are not supported with differencing disks.")
+		err = errors.New("fixed VHD disks are not supported with differencing disks.")
 		errs = packersdk.MultiErrorAppend(errs, err)
 	}
 
@@ -191,7 +191,7 @@ func (b *Builder) Run(ctx context.Context, ui packersdk.Ui, hook packersdk.Hook)
 	// Create the driver that we'll use to communicate with Hyperv
 	driver, err := hypervcommon.NewHypervPS4Driver()
 	if err != nil {
-		return nil, fmt.Errorf("Failed creating Hyper-V driver: %s", err)
+		return nil, fmt.Errorf("failed creating Hyper-V driver: %w", err)
 	}
 
 	// Set up the state.
@@ -370,11 +370,11 @@ func (b *Builder) Run(ctx context.Context, ui packersdk.Ui, hook packersdk.Hook)
 
 	// If we were interrupted or cancelled, then just exit.
 	if _, ok := state.GetOk(multistep.StateCancelled); ok {
-		return nil, errors.New("Build was cancelled.")
+		return nil, errors.New("build was cancelled.")
 	}
 
 	if _, ok := state.GetOk(multistep.StateHalted); ok {
-		return nil, errors.New("Build was halted.")
+		return nil, errors.New("build was halted.")
 	}
 	generatedData := map[string]interface{}{"generated_data": state.Get("generated_data")}
 	return hypervcommon.NewArtifact(b.config.OutputDir, generatedData)
@@ -390,13 +390,13 @@ func (b *Builder) checkDiskSize() error {
 	log.Printf("%s: %v", "DiskSize", b.config.DiskSize)
 
 	if b.config.DiskSize < MinDiskSize {
-		return fmt.Errorf("disk_size: Virtual machine requires disk space >= %v GB, but defined: %v",
+		return fmt.Errorf("disk_size: virtual machine requires disk space >= %v GB, but defined: %v",
 			MinDiskSize, b.config.DiskSize/1024)
 	} else if b.config.DiskSize > MaxDiskSize && !b.config.FixedVHD {
-		return fmt.Errorf("disk_size: Virtual machine requires disk space <= %v GB, but defined: %v",
+		return fmt.Errorf("disk_size: virtual machine requires disk space <= %v GB, but defined: %v",
 			MaxDiskSize, b.config.DiskSize/1024)
 	} else if b.config.DiskSize > MaxVHDSize && b.config.FixedVHD {
-		return fmt.Errorf("disk_size: Virtual machine requires disk space <= %v GB, but defined: %v",
+		return fmt.Errorf("disk_size: virtual machine requires disk space <= %v GB, but defined: %v",
 			MaxVHDSize/1024, b.config.DiskSize/1024)
 	}
 

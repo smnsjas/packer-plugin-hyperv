@@ -134,21 +134,21 @@ func (b *Builder) Prepare(raws ...interface{}) ([]string, []string, error) {
 
 	if b.config.CloneFromVMName == "" {
 		if b.config.CloneFromVMCXPath == "" {
-			errs = packersdk.MultiErrorAppend(errs, fmt.Errorf("The clone_from_vm_name must be specified if "+
+			errs = packersdk.MultiErrorAppend(errs, fmt.Errorf("the clone_from_vm_name must be specified if "+
 				"clone_from_vmcx_path is not specified."))
 		}
 	}
 
 	if b.config.CloneFromVMCXPath == "" {
 		if b.config.CloneFromVMName == "" {
-			errs = packersdk.MultiErrorAppend(errs, fmt.Errorf("The clone_from_vmcx_path be specified if "+
+			errs = packersdk.MultiErrorAppend(errs, fmt.Errorf("the clone_from_vmcx_path must be specified if "+
 				"clone_from_vm_name must is not specified."))
 		}
 	} else {
 		if _, err := os.Stat(b.config.CloneFromVMCXPath); os.IsNotExist(err) {
 			if err != nil {
 				errs = packersdk.MultiErrorAppend(
-					errs, fmt.Errorf("CloneFromVMCXPath does not exist: %s", err))
+					errs, fmt.Errorf("CloneFromVMCXPath does not exist: %w", err))
 			}
 		}
 		if strings.HasSuffix(strings.ToLower(b.config.CloneFromVMCXPath), ".vmcx") {
@@ -158,7 +158,7 @@ func (b *Builder) Prepare(raws ...interface{}) ([]string, []string, error) {
 				keep := strings.Split(b.config.CloneFromVMCXPath, "Virtual Machines")
 				b.config.CloneFromVMCXPath = keep[0]
 			} else {
-				errs = packersdk.MultiErrorAppend(errs, fmt.Errorf("Unable to "+
+				errs = packersdk.MultiErrorAppend(errs, fmt.Errorf("unable to "+
 					"parse the clone_from_vmcx_path to find the vm directory. "+
 					"Please provide the path to the folder containing the "+
 					"vmcx file, not the file itself. Example: instead of "+
@@ -189,7 +189,7 @@ func (b *Builder) Run(ctx context.Context, ui packersdk.Ui, hook packersdk.Hook)
 	// Create the driver that we'll use to communicate with Hyperv
 	driver, err := hypervcommon.NewHypervPS4Driver()
 	if err != nil {
-		return nil, fmt.Errorf("Failed creating Hyper-V driver: %s", err)
+		return nil, fmt.Errorf("failed creating Hyper-V driver: %w", err)
 	}
 
 	// Set up the state.
@@ -373,11 +373,11 @@ func (b *Builder) Run(ctx context.Context, ui packersdk.Ui, hook packersdk.Hook)
 
 	// If we were interrupted or cancelled, then just exit.
 	if _, ok := state.GetOk(multistep.StateCancelled); ok {
-		return nil, errors.New("Build was cancelled.")
+		return nil, errors.New("build was cancelled.")
 	}
 
 	if _, ok := state.GetOk(multistep.StateHalted); ok {
-		return nil, errors.New("Build was halted.")
+		return nil, errors.New("build was halted.")
 	}
 
 	generatedData := map[string]interface{}{"generated_data": state.Get("generated_data")}
