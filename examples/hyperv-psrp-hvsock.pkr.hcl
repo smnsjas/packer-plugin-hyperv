@@ -14,7 +14,7 @@ variable "iso_url" {
 
 variable "iso_checksum" {
   type    = string
-  default = "sha256:888969d5f34g4e03ac9d1f9786c66749" // Placeholder
+  default = "sha256:888969d5f34a4e03ac9d1f9786c66749888969d5f34a4e03ac9d1f9786c66749" // Example; replace with real ISO checksum
 }
 
 source "hyperv-iso" "hvsock" {
