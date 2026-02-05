@@ -1,6 +1,7 @@
 packer {
   required_plugins {
     hyperv = {
+      version = ">= 0.0.1"
       source  = "github.com/smnsjas/hyperv"
     }
   }
