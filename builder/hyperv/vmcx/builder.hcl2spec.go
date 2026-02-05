@@ -83,6 +83,19 @@ type FlatConfig struct {
 	WinRMUseSSL                    *bool             `mapstructure:"winrm_use_ssl" cty:"winrm_use_ssl" hcl:"winrm_use_ssl"`
 	WinRMInsecure                  *bool             `mapstructure:"winrm_insecure" cty:"winrm_insecure" hcl:"winrm_insecure"`
 	WinRMUseNTLM                   *bool             `mapstructure:"winrm_use_ntlm" cty:"winrm_use_ntlm" hcl:"winrm_use_ntlm"`
+	PSRPHost                       *string           `mapstructure:"psrp_host" required:"false" cty:"psrp_host" hcl:"psrp_host"`
+	PSRPPort                       *int              `mapstructure:"psrp_port" required:"false" cty:"psrp_port" hcl:"psrp_port"`
+	PSRPUsername                   *string           `mapstructure:"psrp_username" required:"false" cty:"psrp_username" hcl:"psrp_username"`
+	PSRPPassword                   *string           `mapstructure:"psrp_password" required:"false" cty:"psrp_password" hcl:"psrp_password"`
+	PSRPTimeout                    *string           `mapstructure:"psrp_timeout" required:"false" cty:"psrp_timeout" hcl:"psrp_timeout"`
+	PSRPTransport                  *string           `mapstructure:"psrp_transport" required:"false" cty:"psrp_transport" hcl:"psrp_transport"`
+	PSRPVMID                       *string           `mapstructure:"psrp_vmid" required:"false" cty:"psrp_vmid" hcl:"psrp_vmid"`
+	PSRPConfigurationName          *string           `mapstructure:"psrp_configuration_name" required:"false" cty:"psrp_configuration_name" hcl:"psrp_configuration_name"`
+	PSRPUseTLS                     *bool             `mapstructure:"psrp_use_tls" required:"false" cty:"psrp_use_tls" hcl:"psrp_use_tls"`
+	PSRPInsecure                   *bool             `mapstructure:"psrp_insecure" required:"false" cty:"psrp_insecure" hcl:"psrp_insecure"`
+	PSRPAuthType                   *string           `mapstructure:"psrp_auth_type" required:"false" cty:"psrp_auth_type" hcl:"psrp_auth_type"`
+	PSRPDomain                     *string           `mapstructure:"psrp_domain" required:"false" cty:"psrp_domain" hcl:"psrp_domain"`
+	PSRPRealm                      *string           `mapstructure:"psrp_realm" required:"false" cty:"psrp_realm" hcl:"psrp_realm"`
 	FloppyFiles                    []string          `mapstructure:"floppy_files" cty:"floppy_files" hcl:"floppy_files"`
 	FloppyDirectories              []string          `mapstructure:"floppy_dirs" cty:"floppy_dirs" hcl:"floppy_dirs"`
 	FloppyContent                  map[string]string `mapstructure:"floppy_content" cty:"floppy_content" hcl:"floppy_content"`
@@ -214,6 +227,19 @@ func (*FlatConfig) HCL2Spec() map[string]hcldec.Spec {
 		"winrm_use_ssl":                    &hcldec.AttrSpec{Name: "winrm_use_ssl", Type: cty.Bool, Required: false},
 		"winrm_insecure":                   &hcldec.AttrSpec{Name: "winrm_insecure", Type: cty.Bool, Required: false},
 		"winrm_use_ntlm":                   &hcldec.AttrSpec{Name: "winrm_use_ntlm", Type: cty.Bool, Required: false},
+		"psrp_host":                        &hcldec.AttrSpec{Name: "psrp_host", Type: cty.String, Required: false},
+		"psrp_port":                        &hcldec.AttrSpec{Name: "psrp_port", Type: cty.Number, Required: false},
+		"psrp_username":                    &hcldec.AttrSpec{Name: "psrp_username", Type: cty.String, Required: false},
+		"psrp_password":                    &hcldec.AttrSpec{Name: "psrp_password", Type: cty.String, Required: false},
+		"psrp_timeout":                     &hcldec.AttrSpec{Name: "psrp_timeout", Type: cty.String, Required: false},
+		"psrp_transport":                   &hcldec.AttrSpec{Name: "psrp_transport", Type: cty.String, Required: false},
+		"psrp_vmid":                        &hcldec.AttrSpec{Name: "psrp_vmid", Type: cty.String, Required: false},
+		"psrp_configuration_name":          &hcldec.AttrSpec{Name: "psrp_configuration_name", Type: cty.String, Required: false},
+		"psrp_use_tls":                     &hcldec.AttrSpec{Name: "psrp_use_tls", Type: cty.Bool, Required: false},
+		"psrp_insecure":                    &hcldec.AttrSpec{Name: "psrp_insecure", Type: cty.Bool, Required: false},
+		"psrp_auth_type":                   &hcldec.AttrSpec{Name: "psrp_auth_type", Type: cty.String, Required: false},
+		"psrp_domain":                      &hcldec.AttrSpec{Name: "psrp_domain", Type: cty.String, Required: false},
+		"psrp_realm":                       &hcldec.AttrSpec{Name: "psrp_realm", Type: cty.String, Required: false},
 		"floppy_files":                     &hcldec.AttrSpec{Name: "floppy_files", Type: cty.List(cty.String), Required: false},
 		"floppy_dirs":                      &hcldec.AttrSpec{Name: "floppy_dirs", Type: cty.List(cty.String), Required: false},
 		"floppy_content":                   &hcldec.AttrSpec{Name: "floppy_content", Type: cty.Map(cty.String), Required: false},
