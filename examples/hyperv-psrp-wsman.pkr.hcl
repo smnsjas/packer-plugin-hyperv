@@ -9,7 +9,7 @@ packer {
 
 variable "iso_url" {
   type    = string
-  default = "https://software-static.download.prss.microsoft.com/sg/download/888969d5-f34g-4e03-ac9d-1f9786c66749/SERVER_EVAL_x64FRE_en-us.iso"
+  default = "https://download.microsoft.com/path/to/SERVER_EVAL_x64FRE_en-us.iso" // Placeholder
 }
 
 variable "iso_checksum" {
