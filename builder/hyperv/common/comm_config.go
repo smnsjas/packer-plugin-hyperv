@@ -6,7 +6,7 @@ package common
 import (
 	"github.com/hashicorp/packer-plugin-sdk/communicator"
 	"github.com/hashicorp/packer-plugin-sdk/template/interpolate"
-	psrp "github.com/jasonsimons/packer-plugin-psrp/communicator/psrp"
+	psrp "github.com/smnsjas/packer-psrp-communicator/communicator/psrp"
 )
 
 // CommConfig contains configuration for all communicator types (SSH, WinRM, PSRP)

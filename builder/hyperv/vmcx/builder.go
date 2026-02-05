@@ -24,7 +24,7 @@ import (
 	"github.com/hashicorp/packer-plugin-sdk/shutdowncommand"
 	"github.com/hashicorp/packer-plugin-sdk/template/config"
 	"github.com/hashicorp/packer-plugin-sdk/template/interpolate"
-	"github.com/jasonsimons/packer-plugin-psrp/communicator/psrp"
+	"github.com/smnsjas/packer-psrp-communicator/communicator/psrp"
 )
 
 const (
