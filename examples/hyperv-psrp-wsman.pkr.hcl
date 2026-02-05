@@ -14,7 +14,7 @@ variable "iso_url" {
 
 variable "iso_checksum" {
   type    = string
-  default = "sha256:888969d5f34g4e03ac9d1f9786c66749" // Placeholder
+  default = "sha256:<ISO_CHECKSUM_PLACEHOLDER>" // Placeholder: replace with the actual SHA256 checksum of the ISO
 }
 
 // WARNING: This password is a placeholder for example purposes only.
