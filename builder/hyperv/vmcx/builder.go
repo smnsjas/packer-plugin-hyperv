@@ -305,6 +305,10 @@ func (b *Builder) Run(ctx context.Context, ui packersdk.Ui, hook packersdk.Hook)
 			GroupInterval: b.config.BootConfig.BootGroupInterval,
 		},
 
+		&hypervcommon.StepConfigurePSRP{
+			CommConfig: &b.config.CommConfig,
+		},
+
 		// configure the communicator ssh, winrm, or psrp
 		&communicator.StepConnect{
 			Config:    &b.config.CommConfig.Comm,
