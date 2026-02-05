@@ -51,9 +51,20 @@ source "hyperv-iso" "hvsock" {
 build {
   sources = ["source.hyperv-iso.hvsock"]
 
+  provisioner "file" {
+    source      = "./test_file.txt"
+    destination = "C:\\Windows\\Temp\\test_file.txt"
+  }
+
   provisioner "powershell" {
     inline = [
-      "Write-Host 'Connected via PSRP HvSocket (PowerShell Direct)!'"
+      "Write-Host 'Connected via PSRP HvSocket (PowerShell Direct)!'",
+      "Write-Host '--- System Info ---'",
+      "$env:COMPUTERNAME",
+      "[System.Environment]::OSVersion.ToString()",
+      "Write-Host '--- File Verification ---'",
+      "if (Test-Path C:\\Windows\\Temp\\test_file.txt) { Write-Host 'File copy successful!' } else { Write-Error 'File copy failed!' }",
+      "Get-Content C:\\Windows\\Temp\\test_file.txt"
     ]
   }
 }
