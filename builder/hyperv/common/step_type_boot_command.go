@@ -35,7 +35,11 @@ func (s *StepTypeBootCommand) Run(ctx context.Context, state multistep.StateBag)
 	ui := state.Get("ui").(packersdk.Ui)
 	driver := state.Get("driver").(Driver)
 	vmName := state.Get("vmName").(string)
-	hostIp := state.Get("http_ip").(string)
+	// hostIp can be missing if SkipHostIP was set in StepRun
+	var hostIp string
+	if ipRaw := state.Get("http_ip"); ipRaw != nil {
+		hostIp = ipRaw.(string)
+	}
 
 	// Wait the for the vm to boot.
 	if int64(s.BootWait) > 0 {
