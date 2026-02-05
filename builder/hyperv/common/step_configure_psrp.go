@@ -42,9 +42,9 @@ func (s *StepConfigurePSRP) Run(ctx context.Context, state multistep.StateBag) m
 	ui.Say("Auto-detecting VM ID for PSRP HvSocket connection...")
 	vmid, err := driver.GetVMId(vmName)
 	if err != nil {
-		err := fmt.Errorf("error getting VM ID: %w", err)
-		state.Put("error", err)
-		ui.Error(err.Error())
+		wrappedErr := fmt.Errorf("error getting VM ID: %w", err)
+		state.Put("error", wrappedErr)
+		ui.Error(wrappedErr.Error())
 		return multistep.ActionHalt
 	}
 
