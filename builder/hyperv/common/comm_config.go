@@ -67,7 +67,21 @@ func (c *CommConfig) Prepare(ctx *interpolate.Context) []error {
 	// If using PSRP communicator, populate and validate PSRP config
 	if c.Comm.Type == "psrp" {
 		c.populatePSRPConfig()
-		return c.PSRP.Prepare(ctx)
+		errs := c.PSRP.Prepare(ctx)
+
+		// Filter out "psrp_vmid is required for hvsock transport" error for hvsock transport
+		// because the VMID is unknown at validate time and will be auto-detected at runtime.
+		if c.PSRP.PSRPTransport == psrp.TransportHvSocket {
+			var filteredErrs []error
+			for _, err := range errs {
+				if err.Error() != "psrp_vmid is required for hvsock transport" {
+					filteredErrs = append(filteredErrs, err)
+				}
+			}
+			return filteredErrs
+		}
+
+		return errs
 	}
 
 	// For SSH/WinRM, use SDK's validation
