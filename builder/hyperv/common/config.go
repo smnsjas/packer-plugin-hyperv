@@ -11,8 +11,6 @@ import (
 	"os"
 	"strings"
 
-	powershell "github.com/hashicorp/packer-plugin-hyperv/builder/hyperv/common/powershell"
-	"github.com/hashicorp/packer-plugin-hyperv/builder/hyperv/common/powershell/hyperv"
 	"github.com/hashicorp/packer-plugin-sdk/common"
 	"github.com/hashicorp/packer-plugin-sdk/multistep/commonsteps"
 	"github.com/hashicorp/packer-plugin-sdk/template/interpolate"
@@ -30,7 +28,7 @@ const (
 
 	DefaultRamSize                 = 1 * 1024  // 1GB
 	MinRamSize                     = 32        // 32MB
-	MaxRamSize                     = 32 * 1024 // 32GB
+	MaxRamSize                     = 1024 * 1024 // 1TB
 	MinNestedVirtualizationRamSize = 4 * 1024  // 4GB
 
 	LowRam = 256 // 256MB
@@ -198,7 +196,7 @@ func (c *CommonConfig) Prepare(ctx *interpolate.Context, pc *common.PackerConfig
 	}
 
 	if c.SwitchName == "" {
-		c.SwitchName = c.detectSwitchName(pc.PackerBuildName)
+		c.SwitchName = detectSwitchName(pc.PackerBuildName)
 		log.Printf("Using switch %s", c.SwitchName)
 	}
 
@@ -291,19 +289,7 @@ func (c *CommonConfig) Prepare(ctx *interpolate.Context, pc *common.PackerConfig
 		}
 	}
 
-	if c.EnableVirtualizationExtensions {
-		hasVirtualMachineVirtualizationExtensions, err := powershell.HasVirtualMachineVirtualizationExtensions()
-		if err != nil {
-			errs = append(errs, fmt.Errorf("Failed detecting virtual machine virtualization "+
-				"extensions support: %s", err))
-		} else {
-			if !hasVirtualMachineVirtualizationExtensions {
-				errs = append(errs, fmt.Errorf("This version of Hyper-V does not support "+
-					"virtual machine virtualization extension. Please use Windows 10 or Windows Server 2016 "+
-					"or newer."))
-			}
-		}
-	}
+	// Note: virtualization extensions check moved to StepValidateHost (requires PowerShell).
 
 	if c.FirstBootDevice != "" {
 		_, _, _, err := ParseBootDeviceIdentifier(c.FirstBootDevice, c.Generation)
@@ -350,11 +336,7 @@ func (c *CommonConfig) Prepare(ctx *interpolate.Context, pc *common.PackerConfig
 		errs = append(errs, err)
 	}
 
-	// warns
-	warning := c.checkHostAvailableMemory()
-	if warning != "" {
-		warns = Appendwarns(warns, warning)
-	}
+	// Note: host memory check moved to StepValidateHost (requires PowerShell).
 
 	if len(errs) > 0 {
 		return errs, warns
@@ -381,19 +363,6 @@ func (c *CommonConfig) checkDiskBlockSize() error {
 	return nil
 }
 
-func (c *CommonConfig) checkHostAvailableMemory() string {
-	powershellAvailable, _, _ := powershell.IsPowershellAvailable()
-
-	if powershellAvailable {
-		freeMB := powershell.GetHostAvailableMemory()
-
-		if (freeMB - float64(c.RamSize)) < LowRam {
-			return "Hyper-V might fail to create a VM if there is not enough free memory in the system."
-		}
-	}
-
-	return ""
-}
 
 func (c *CommonConfig) checkRamSize() error {
 	if c.RamSize == 0 {
@@ -413,19 +382,6 @@ func (c *CommonConfig) checkRamSize() error {
 	return nil
 }
 
-func (c *CommonConfig) detectSwitchName(buildName string) string {
-	powershellAvailable, _, _ := powershell.IsPowershellAvailable()
-
-	if powershellAvailable {
-		// no switch name, try to get one attached to a online network adapter
-		onlineSwitchName, err := hyperv.GetExternalOnlineVirtualSwitch()
-		if onlineSwitchName != "" && err == nil {
-			return onlineSwitchName
-		}
-	}
-
-	return fmt.Sprintf("packer-%s", buildName)
-}
 
 func Appendwarns(slice []string, data ...string) []string {
 	m := len(slice)

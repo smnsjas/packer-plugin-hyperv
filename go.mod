@@ -5,7 +5,7 @@ go 1.25.0
 require (
 	github.com/hashicorp/hcl/v2 v2.19.1
 	github.com/hashicorp/packer-plugin-sdk v0.6.4
-	github.com/smnsjas/packer-psrp-communicator v0.0.0-20260205180241-390cff18aad0
+	github.com/smnsjas/packer-psrp-communicator v0.0.0-20260209193037-625b649c3525
 	github.com/zclconf/go-cty v1.13.3
 )
 
@@ -91,7 +91,7 @@ require (
 	github.com/pkg/sftp v1.13.2 // indirect
 	github.com/ryanuber/go-glob v1.0.0 // indirect
 	github.com/smnsjas/go-psrp v0.2.0 // indirect
-	github.com/smnsjas/go-psrpcore v0.0.0-20260129221240-693b4b10e7ba // indirect
+	github.com/smnsjas/go-psrpcore v0.0.0-20260209151518-449d513eeaf0 // indirect
 	github.com/tidwall/transform v0.0.0-20201103190739-32f242e2dbde // indirect
 	github.com/ugorji/go/codec v1.2.6 // indirect
 	github.com/ulikunitz/xz v0.5.10 // indirect

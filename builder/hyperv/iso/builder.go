@@ -28,26 +28,6 @@ import (
 	"github.com/smnsjas/packer-psrp-communicator/communicator/psrp"
 )
 
-const (
-	DefaultDiskSize = 40 * 1024        // ~40GB
-	MinDiskSize     = 256              // 256MB
-	MaxDiskSize     = 64 * 1024 * 1024 // 64TB
-	MaxVHDSize      = 2040 * 1024      // 2040GB
-
-	DefaultDiskBlockSize = 32  // 32MB
-	MinDiskBlockSize     = 1   // 1MB
-	MaxDiskBlockSize     = 256 // 256MB
-
-	DefaultRamSize                 = 1 * 1024  // 1GB
-	MinRamSize                     = 32        // 32MB
-	MaxRamSize                     = 32 * 1024 // 32GB
-	MinNestedVirtualizationRamSize = 4 * 1024  // 4GB
-
-	LowRam = 256 // 256MB
-
-	DefaultUsername = ""
-	DefaultPassword = ""
-)
 
 // Builder implements packersdk.Builder and builds the actual Hyperv
 // images.
@@ -209,6 +189,10 @@ func (b *Builder) Run(ctx context.Context, ui packersdk.Ui, hook packersdk.Hook)
 		&commonsteps.StepOutputDir{
 			Force: b.config.PackerForce,
 			Path:  b.config.OutputDir,
+		},
+		&hypervcommon.StepValidateHost{
+			EnableVirtualizationExtensions: b.config.EnableVirtualizationExtensions,
+			RamSize:                        b.config.RamSize,
 		},
 		&commonsteps.StepDownload{
 			Checksum:    b.config.ISOChecksum,
@@ -384,20 +368,20 @@ func (b *Builder) Run(ctx context.Context, ui packersdk.Ui, hook packersdk.Hook)
 
 func (b *Builder) checkDiskSize() error {
 	if b.config.DiskSize == 0 {
-		b.config.DiskSize = DefaultDiskSize
+		b.config.DiskSize = hypervcommon.DefaultDiskSize
 	}
 
 	log.Printf("%s: %v", "DiskSize", b.config.DiskSize)
 
-	if b.config.DiskSize < MinDiskSize {
+	if b.config.DiskSize < hypervcommon.MinDiskSize {
 		return fmt.Errorf("disk_size: virtual machine requires disk space >= %v GB, but defined: %v",
-			MinDiskSize, b.config.DiskSize/1024)
-	} else if b.config.DiskSize > MaxDiskSize && !b.config.FixedVHD {
+			hypervcommon.MinDiskSize, b.config.DiskSize/1024)
+	} else if b.config.DiskSize > hypervcommon.MaxDiskSize && !b.config.FixedVHD {
 		return fmt.Errorf("disk_size: virtual machine requires disk space <= %v GB, but defined: %v",
-			MaxDiskSize, b.config.DiskSize/1024)
-	} else if b.config.DiskSize > MaxVHDSize && b.config.FixedVHD {
+			hypervcommon.MaxDiskSize, b.config.DiskSize/1024)
+	} else if b.config.DiskSize > hypervcommon.MaxVHDSize && b.config.FixedVHD {
 		return fmt.Errorf("disk_size: virtual machine requires disk space <= %v GB, but defined: %v",
-			MaxVHDSize/1024, b.config.DiskSize/1024)
+			hypervcommon.MaxVHDSize/1024, b.config.DiskSize/1024)
 	}
 
 	return nil
