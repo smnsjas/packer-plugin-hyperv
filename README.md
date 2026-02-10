@@ -5,10 +5,10 @@ to create custom images. For the full list of available features for this plugin
 
 ## Key Features
 
-* **PSRP Communicator Support:** Perform Windows provisioning using the PowerShell Remoting Protocol (PSRP), which is faster and more reliable than WinRM.
-* **HvSocket Integration:** Connect directly to VMs via Hyper-V Sockets (`psrp_transport = "hvsock"`), eliminating the need for network interfaces, IP addresses, or firewall configuration on the guest.
-* **Automated Windows Installation:** Full support for `Autounattend.xml` via `cd_content` for zero-touch Windows ISO builds.
+* **PSRP Communicator Support:** Provision Windows VMs using the PowerShell Remoting Protocol (PSRP) instead of WinRM, with full PowerShell stream support (Output, Error, Warning, Verbose, Debug, Information).
+* **HvSocket Transport (PowerShell Direct):** Connect directly to VMs via Hyper-V Sockets (`psrp_transport = "hvsock"`), eliminating the need for network interfaces, IP addresses, or firewall configuration on the guest.
 * **Automatic VMID Detection:** The plugin automatically detects the VM's GUID for seamless HvSocket connections.
+* **WSMan Transport:** Network-based PSRP over HTTP/HTTPS with support for Basic, NTLM, Negotiate, and Kerberos authentication.
 
 ## Installation
 
@@ -20,14 +20,14 @@ Starting from version 1.7, Packer supports a new `packer init` command allowing
 automatic installation of Packer plugins. Read the
 [Packer documentation](https://www.packer.io/docs/commands/init) for more information.
 
-To install this plugin, copy and paste this code into your Packer configuration .
-Then, run [`packer init`](https://www.packer.io/docs/commands/init).
+To install this plugin, copy and paste this code into your Packer configuration,
+then run [`packer init`](https://www.packer.io/docs/commands/init).
 
 ```hcl
 packer {
   required_plugins {
     hyperv = {
-      version = ">= 1.1.5"
+      version = ">= 1.1.7"
       source  = "github.com/Geogboe/hyperv"
     }
   }

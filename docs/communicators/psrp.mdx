@@ -3,7 +3,7 @@
 The Hyper-V plugin supports the PSRP (PowerShell Remoting Protocol) communicator
 as an alternative to SSH and WinRM for Windows VMs. PSRP offers two transport modes:
 
-- **WSMan** - Network-based transport (similar to WinRM, over HTTP/HTTPS)
+- **WSMan** - Network-based transport over HTTP/HTTPS (WS-Management protocol)
 - **HvSocket** - PowerShell Direct via Hyper-V sockets (no network required)
 
 ## Why Use PSRP?
@@ -13,96 +13,135 @@ as an alternative to SSH and WinRM for Windows VMs. PSRP offers two transport mo
 | Windows Support | Requires OpenSSH | Native | Native |
 | Network Required | Yes | Yes | No (HvSocket) |
 | PowerShell Integration | Limited | Good | Best |
-| File Transfer Speed | Good | Slow | Good |
+| Stream Handling | stdout/stderr only | stdout/stderr only | All 7 PS streams |
 
-## Basic Example (WSMan Transport)
+For Hyper-V builds, **PSRP with HvSocket transport is recommended** for Windows
+VMs. It connects directly through the hypervisor — no network switch, no
+firewall rules, no WinRM listener configuration needed.
 
-This example uses PSRP over WSMan (network-based, similar to WinRM):
+## HvSocket Transport (Recommended)
+
+HvSocket uses Hyper-V sockets (PowerShell Direct) for communication, requiring
+no network connectivity on the guest. The VM GUID is automatically detected:
 
 ```hcl
 source "hyperv-iso" "windows" {
-  vm_name          = "windows-2022"
-  iso_url          = "path/to/windows.iso"
-  iso_checksum     = "sha256:..."
-  
+  vm_name    = "windows-2025"
+  iso_url    = "path/to/windows.iso"
+  iso_checksum = "sha256:..."
+
+  communicator   = "psrp"
+  psrp_transport = "hvsock"
+  psrp_username  = "Administrator"
+  psrp_password  = var.admin_password
+  psrp_timeout   = "10m"
+
+  shutdown_command = "shutdown /s /t 5 /f"
+}
+```
+
+> **Note:** HvSocket requires a Windows 10 / Server 2016 or newer Hyper-V host
+> and the guest must have Hyper-V Integration Services installed (included by
+> default in modern Windows).
+
+## WSMan Transport
+
+WSMan uses standard WS-Management over HTTP/HTTPS, similar to WinRM. Use this
+when HvSocket is not available (e.g., remote Hyper-V hosts):
+
+```hcl
+source "hyperv-iso" "windows" {
+  vm_name    = "windows-2025"
+  iso_url    = "path/to/windows.iso"
+  iso_checksum = "sha256:..."
+
   communicator     = "psrp"
   psrp_username    = "Administrator"
-  psrp_password    = "SecurePassword123!"
+  psrp_password    = var.admin_password
   psrp_port        = 5985
-  psrp_use_ssl     = false
-  
-  shutdown_command = "shutdown /s /t 0"
+  psrp_use_tls     = false
+  psrp_auth_type   = "ntlm"
+
+  shutdown_command = "shutdown /s /t 5 /f"
 }
 ```
-
-## HvSocket Transport (PowerShell Direct)
-
-HvSocket uses Hyper-V sockets for communication, requiring no network connectivity.
-The VM GUID is automatically detected from the running VM:
-
-```hcl
-source "hyperv-iso" "windows" {
-  vm_name          = "windows-2022"
-  iso_url          = "path/to/windows.iso"
-  iso_checksum     = "sha256:..."
-  
-  communicator     = "psrp"
-  psrp_transport   = "hvsock"
-  psrp_username    = "Administrator"
-  psrp_password    = "SecurePassword123!"
-  
-  shutdown_command = "shutdown /s /t 0"
-}
-```
-
-> **Note:** HvSocket transport requires the Hyper-V host to have PowerShell Direct
-> capabilities and the guest to have the Hyper-V integration services installed.
 
 ## Configuration Reference
 
+The builder docs include PSRP fields via `@include`. The full list of PSRP
+options is documented in the builder configuration references:
+
+- [hyperv-iso PSRP fields](../builders/iso.mdx)
+- [hyperv-vmcx PSRP fields](../builders/vmcx.mdx)
+
 ### Required Options
 
-- `psrp_username` (string) - The username for authentication.
+- `psrp_username` (string) - The username for authentication. Required for
+  `basic` and `ntlm` auth types. Optional for `kerberos` and `negotiate` on
+  Windows (SSO with logged-in user's credentials when omitted).
 - `psrp_password` (string) - The password for authentication.
 
-### Optional Options
+### Transport Options
 
-- `psrp_transport` (string) - Transport to use: `wsman` (default) or `hvsock`.
-- `psrp_port` (int) - Port for WSMan transport. Default: 5985 (HTTP) or 5986 (HTTPS).
-- `psrp_use_ssl` (bool) - Use HTTPS for WSMan transport. Default: false.
-- `psrp_insecure` (bool) - Skip TLS certificate validation. Default: false.
-- `psrp_timeout` (duration) - Timeout for connection attempts. Default: 5m.
-- `psrp_auth` (string) - Authentication method: `basic`, `ntlm`, `negotiate`, or `kerberos`.
+- `psrp_transport` (string) - `wsman` (default) or `hvsock`.
 - `psrp_vmid` (string) - VM GUID for HvSocket (auto-detected if not specified).
+- `psrp_port` (int) - WSMan port. Default: `5985` (HTTP) or `5986` (HTTPS).
+- `psrp_use_tls` (bool) - Use TLS/HTTPS for WSMan. Default: `false`.
+- `psrp_insecure` (bool) - Skip TLS certificate validation. Default: `false`.
+- `psrp_timeout` (duration) - Connection timeout. Default: `5m`.
+- `psrp_configuration_name` (string) - PowerShell configuration/endpoint name.
+
+### Authentication Options
+
+- `psrp_auth_type` (string) - Authentication method: `basic`, `ntlm`,
+  `negotiate` (default), or `kerberos`.
+- `psrp_domain` (string) - Domain name for NTLM or Negotiate authentication.
+- `psrp_realm` (string) - Kerberos realm (auto-detected on Windows/SSPI).
+
+### Kerberos Options (Unix)
+
+These options apply when using Kerberos or Negotiate authentication on
+Unix/macOS, where the pure Go `gokrb5` library is used instead of Windows SSPI:
+
+- `psrp_krb5_conf_path` (string) - Path to `krb5.conf`. Default: `/etc/krb5.conf`.
+- `psrp_keytab_path` (string) - Path to keytab file (highest priority credential).
+- `psrp_ccache_path` (string) - Path to credential cache file.
+
+Credential priority on Unix: keytab > ccache > password.
 
 ## Authentication Methods
 
-PSRP supports multiple authentication methods:
+| Method | Field Value | Description |
+|--------|-------------|-------------|
+| Negotiate | `negotiate` | Default. Tries Kerberos first, falls back to NTLM |
+| NTLM | `ntlm` | Challenge-response, works with local and domain accounts |
+| Basic | `basic` | Username + password (avoid over non-TLS connections) |
+| Kerberos | `kerberos` | Ticket-based, for Active Directory environments |
 
-| Method | Description | Use Case |
-|--------|-------------|----------|
-| `basic` | Basic authentication | Simple setups, development |
-| `ntlm` | NTLM authentication | Domain or local accounts (default) |
-| `negotiate` | Negotiate (SPNEGO) | Domain environments |
-| `kerberos` | Kerberos authentication | Active Directory domains |
+### Windows SSPI vs Unix Kerberos
 
-Example with NTLM:
+On **Windows hosts**, Kerberos and Negotiate authentication use the native SSPI
+subsystem. When `psrp_username` is omitted, SSPI authenticates with the
+logged-in user's credentials (SSO).
 
-```hcl
-source "hyperv-iso" "windows" {
-  communicator  = "psrp"
-  psrp_username = "Administrator"
-  psrp_password = "SecurePassword123!"
-  psrp_auth     = "ntlm"
-  # ... other options
-}
-```
+On **Unix/macOS hosts**, a pure Go Kerberos library (`gokrb5`) is used.
+`psrp_username` is always required, along with a `krb5.conf` file and either
+a password, keytab, or credential cache.
 
 ## Comparison with WinRM
 
 PSRP provides several advantages over the built-in WinRM communicator:
 
-1. **Better PowerShell Integration** - Direct access to PowerShell's remoting layer
-2. **HvSocket Support** - No network setup required for PowerShell Direct
-3. **Improved Error Handling** - Better error messages from the PowerShell layer
-4. **Stream-based File Transfer** - More efficient file uploads for provisioning
+1. **HvSocket Support** - No network setup required for Hyper-V builds
+2. **Rich Stream Handling** - Access to all 7 PowerShell streams (Output, Error,
+   Warning, Verbose, Debug, Information, Progress)
+3. **Better Error Messages** - Error records include script line numbers and
+   stack traces
+4. **Native PowerShell** - Commands execute directly in a PSRP runspace rather
+   than spawning child processes
+
+## Reconnection Behavior
+
+The PSRP communicator automatically reconnects when the session is lost (e.g.,
+during a VM restart from the `windows-restart` provisioner). It polls with a
+10-second retry interval until the VM comes back, bounded by `psrp_timeout`.
