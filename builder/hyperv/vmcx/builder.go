@@ -27,17 +27,6 @@ import (
 	"github.com/smnsjas/packer-psrp-communicator/communicator/psrp"
 )
 
-const (
-	DefaultRamSize                 = 1 * 1024    // 1GB
-	MinRamSize                     = 32          // 32MB
-	MaxRamSize                     = 1024 * 1024 // 1TB
-	MinNestedVirtualizationRamSize = 4 * 1024    // 4GB
-
-	LowRam = 256 // 256MB
-
-	DefaultUsername = ""
-	DefaultPassword = ""
-)
 
 // Builder implements packersdk.Builder and builds the actual Hyperv
 // images.
@@ -207,6 +196,10 @@ func (b *Builder) Run(ctx context.Context, ui packersdk.Ui, hook packersdk.Hook)
 		&commonsteps.StepOutputDir{
 			Force: b.config.PackerForce,
 			Path:  b.config.OutputDir,
+		},
+		&hypervcommon.StepValidateHost{
+			EnableVirtualizationExtensions: b.config.EnableVirtualizationExtensions,
+			RamSize:                        b.config.RamSize,
 		},
 		&StepValidateClone{},
 		&commonsteps.StepDownload{
